@@ -10,8 +10,8 @@ ID = "333"
 
 def verification(req):
 
-    token = req.get("token")
-    id = req.get("id")
+    token = req.headers.get("token", type=str)
+    id = req.args.get("id", type=str)
 
     # тут должна быть проверка совпадения id и token по БД
 
@@ -25,8 +25,8 @@ def verification(req):
 @app.route("/gettoken", methods=["GET"])
 def gettoken():
 
-    id = request.args.get("inn")
-    name = request.args.get("name")
+    id = request.args.get("inn", type=str)
+    name = request.args.get("name", type=str)
 
     if id != "" and name != "":
         # тут должна быть процедура получающая токен и id компании также записывающая их в БД
@@ -42,7 +42,7 @@ def gettoken():
         return jsonify(result)
 
     else:
-        return "Не создан token (ИНН и Имя компании не должны быть пустыми) ", True
+        return "Не создан token (ИНН и Имя компании не должны быть пустыми)", True
 
 
 
@@ -54,7 +54,7 @@ def question():
     if ver:
         # тут мы будем обрабатывать текст от пользователя и возвращать найденные ответы в виде массива json
         # также будем сохранять вопросы пользователя в БД
-        # входящие параметры: id - ид организации, iduser - ид пользователя, token - ключ
+        # входящие параметры: , id - компании, iduser - ид пользователя, token - ключ
 
         result = []
         result.append({
@@ -74,8 +74,16 @@ def grade():
     error, ver = verification(request)
 
     if ver:
+
+        data = request.get_json()
+
+        for grd in data["grades"]:
+            id_answer = grd["id"]
+            grd_answer = grd["grade"]
+            com_answer = grd["comment"]
         # тут получим оценку и комментарий(не обязательно) ответов и запишем её в БД
-        # входящие параметры json в катором массив свойств: id ответов, оценка, комментарий; token - ключ
+        # входящие параметры json в катором массив свойств: id ответов, оценка, комментарий; token - ключ, id - компании
+        # можно реализовать уточняющие вопросы
 
         return "", 200
 
@@ -84,23 +92,61 @@ def grade():
 
 @app.route("/filter", methods=["POST"])
 def setfilter():
-    # тут устанавливаем список слов для фильтрации
-    # входящие параметры: json в катором массив слов; token - ключ
-    # возвращаем idfilter
-    pass
+
+    error, ver = verification(request)
+
+    if ver:
+        data = request.get_json()
+
+        # тут устанавливаем список слов для фильтрации
+        # входящие параметры: json в катором массив слов; token - ключ, id - компании
+        # возвращаем idfilter
+
+        idfilter = ""
+
+        return idfilter
+
+    else:
+        return jsonify(error)
 
 @app.route("/filter", methods=["GET"])
 def getfilter():
-    # тут получает список слов фильтра
-    # входящие параметры: idfilter; token - ключ
-    # возвращаем json в катором массив слов
-    pass
+
+    error, ver = verification(request)
+
+    if ver:
+        # тут получает список слов фильтра
+        # входящие параметры: idfilter; token - ключ, id - компании
+        # возвращаем json в катором массив слов
+
+        result = []
+        result.append({
+            "idfilter": "id фильтра",
+            "list": "список слов",
+        })
+
+        return jsonify(error)
+
+    else:
+        return jsonify(error)
 
 @app.route("/filter", methods=["DELETE"])
 def delfilter():
-    # тут архивируем фильтр
-    # входящие параметры: idfilter; token - ключ
-    pass
+
+    error, ver = verification(request)
+
+    if ver:
+
+        idfilter = request.args.get("idfilter", type = str)
+        if idfilter != "":
+            # тут архивируем фильтр
+            # входящие параметры: idfilter; token - ключ, id - компании
+            return "", 200
+
+        return "Фильтр не найден (ИД фильтра не должн быть пустым)", 200
+
+    else:
+        return jsonify(error)
 
 if __name__ == "__main__":
     app.run(host='127.0.0.1')
