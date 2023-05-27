@@ -1,3 +1,4 @@
+import time
 import flask
 from flask import jsonify, request
 
@@ -33,6 +34,8 @@ def gettoken():
         # пока возвращаем статику для тестов
         # входящие параметры inn(ИНН) и name(Название) организации
 
+        time_stamp = time.time()
+
         result = []
         result.append({
             "id": ID,
@@ -56,13 +59,17 @@ def question():
         # также будем сохранять вопросы пользователя в БД
         # входящие параметры: , id - компании, iduser - ид пользователя, token - ключ
 
-        result = []
-        result.append({
-            "id": "id ответа",
-            "еtext": "какойто ответ",
-        })
+        iduser = request.args.get("iduser", type=str)
 
-        return jsonify(result)
+        if iduser != "":
+
+            result = []
+            result.append({
+                "id": "id ответа",
+                "еtext": "какойто ответ",
+            })
+
+            return jsonify(result)
 
     else:
         return jsonify(error)
