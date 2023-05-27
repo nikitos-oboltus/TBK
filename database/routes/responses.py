@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 import uuid
-from api.responses import get_responses, get_response, create_response, update_response, delete_response
+from database.api.responses import get_responses, get_response, create_response, update_response, delete_response
 
 # Create a blueprint object
 responses_b = Blueprint('responses', __name__)

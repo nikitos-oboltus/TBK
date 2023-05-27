@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 import uuid
-from api.ratings import get_ratings, get_rating, create_rating, update_rating, delete_rating
+from database.api.ratings import get_ratings, get_rating, create_rating, update_rating, delete_rating
 
 # Create a blueprint object
 ratings_b = Blueprint('ratings', __name__)
