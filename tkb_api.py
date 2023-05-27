@@ -25,7 +25,7 @@ def verification(req):
 
 @app.route("/gettoken", methods=["GET"])
 def gettoken():
-
+    time_stamp = time.time()
     id = request.args.get("inn", type=str)
     name = request.args.get("name", type=str)
 
@@ -33,8 +33,6 @@ def gettoken():
         # тут должна быть процедура получающая токен и id компании также записывающая их в БД
         # пока возвращаем статику для тестов
         # входящие параметры inn(ИНН) и name(Название) организации
-
-        time_stamp = time.time()
 
         result = []
         result.append({
@@ -99,7 +97,7 @@ def grade():
 
 @app.route("/filter", methods=["POST"])
 def setfilter():
-
+    time_stamp = time.time()
     error, ver = verification(request)
 
     if ver:
@@ -139,7 +137,7 @@ def getfilter():
 
 @app.route("/filter", methods=["DELETE"])
 def delfilter():
-
+    time_stamp = time.time()
     error, ver = verification(request)
 
     if ver:
