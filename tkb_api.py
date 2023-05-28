@@ -230,6 +230,5 @@ def delfilter():
 @app.errorhandler(408)
 def timeout(e):
     return jsonify("Запрос не удалось обработать в срок, timeout")
-
 if __name__ == "__main__":
     app.run(debug=True, host='127.0.0.1')
