@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 import uuid
-from api.users import get_users, get_user, create_user, update_user, delete_user
+from ..api.users import get_users, get_user, create_user, update_user, delete_user
 
 # Create a blueprint object
 users_b = Blueprint('users', __name__)
