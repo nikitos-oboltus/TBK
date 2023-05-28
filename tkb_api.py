@@ -3,6 +3,12 @@ from datetime import timedelta
 import flask
 from flask import jsonify, request
 from flask_pymongo import PyMongo
+from bs4 import BeautifulSoup as bs
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 import uuid
 
@@ -22,6 +28,8 @@ app = flask.Flask(__name__)
 
 FLASK_APP = 'tkb_api.py'
 FLASK_ENV = 'development'
+
+URL_TEMPLATE = "https://yandex.ru"
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=10)
 
@@ -121,23 +129,49 @@ def question():
                 q_words = q.split(' ')
                 for q_word in q_words:
                     if q_word not in censored_words:
-                        q_words.append(q_word)
-
-            response = {
-                '_id': uuid.uuid4(),
-                'chat_id': iduser,
-                'response_text': q,
-            }
-
-            response_id = create_response(mongo, response)
+                        new_q.append(q_word)
 
             # тут должен быть механизм поиска ответов
 
+            # Тут у нас работает ИИ если результат не удовлетворитерен то просто ищем подходящие ресурсы через поиск в интернете
+
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument(
+                "user-agent=Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0")
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+
+            service = Service(executable_path=ChromeDriverManager().install())
+
+            driver = webdriver.Chrome(service=service, chrome_options=chrome_options)
+
+            driver.get(URL_TEMPLATE+f'/search/?text={new_q}&lr=10715')
+
+            soup = bs(driver.page_source, "lxml")
+
+            bloks = soup.find_all('li', class_='serp-item')
+
             result = []
-            result.append({
-                "id": "id ответа",
-                "еtext": "какойто ответ",
-            })
+
+            for blok in bloks:
+
+                idanswer = str(uuid.uuid4())
+
+                response = {
+                    '_id': idanswer,
+                    'chat_id': iduser,
+                    'response_text': blok, # тут пока храним целиком карточку изипоисковика
+                }
+
+                response_id = create_response(mongo, response)
+
+                result.append({
+                    "id": idanswer,
+                    "answer": blok,
+                })
+
+            driver.close()
+            driver.quit()
 
             return jsonify(result)
 
@@ -162,7 +196,7 @@ def grade():
             com_answer = grd["comment"]
 
             rating = {
-                '_id': uuid.uuid4(),
+                '_id': str(uuid.uuid4()),
                 'chat_id': iduser,
                 'answer_id': id_answer,
                 'rating': grd_answer,
