@@ -3,6 +3,12 @@ from datetime import timedelta
 import flask
 from flask import jsonify, request
 from flask_pymongo import PyMongo
+from bs4 import BeautifulSoup as bs
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 import uuid
 
@@ -22,6 +28,8 @@ app = flask.Flask(__name__)
 
 FLASK_APP = 'tkb_api.py'
 FLASK_ENV = 'development'
+
+URL_TEMPLATE = "https://yandex.ru"
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=10)
 
@@ -55,6 +63,7 @@ def verification(req):
 
     else:
         # тут обработка по фильтру
+
         return "", True
 
 @app.route("/gettoken", methods=["GET"])
@@ -110,7 +119,50 @@ def question():
         # также будем сохранять вопросы пользователя в БД
         # входящие параметры: , id - компании, iduser - ид пользователя, token - ключ
 
-        if iduser != "":
+        if iduser != "" and q != "":
+
+            # тут обработка по фильтру
+            new_q = ""
+            filters_company = get_filters_company(mongo, id)
+            if len(filters_company) > 0:
+                q_words = q.split(' ')
+                for flt in filters_company:
+                    censored_words = flt["censored_words"]
+                    for q_word in q_words:
+                        if q_word not in censored_words:
+                            new_q = new_q + q_word
+            else:
+                new_q = q
+
+            idquestion = str(uuid.uuid4())
+
+            response = {
+                '_id': idquestion,
+                'chat_id': iduser,
+                'requests_text': new_q,
+            }
+
+            request_id = create_request(mongo, response)
+
+            # тут должен быть механизм поиска ответов
+
+            # Тут у нас работает ИИ если результат не удовлетворитерен то просто ищем подходящие ресурсы через поиск в интернете
+
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument(
+                "user-agent=Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0")
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+
+            service = Service(executable_path=ChromeDriverManager().install())
+
+            driver = webdriver.Chrome(service=service, chrome_options=chrome_options)
+
+            driver.get(URL_TEMPLATE+f'/search/?text={new_q}&lr=10715')
+
+            soup = bs(driver.page_source, "lxml")
+
+            bloks = soup.find_all('li', class_='serp-item')
 
             response = {
                 '_id': str(uuid.uuid4()),
@@ -123,10 +175,46 @@ def question():
             # тут должен быть механизм поиска ответов
 
             result = []
-            result.append({
-                "id": "id ответа",
-                "еtext": "какойто ответ",
-            })
+
+            b_count = 0
+            for blok in bloks:
+
+                if b_count > 5: break
+                b_count = b_count + 1
+
+                blok_titel = blok.find('span', class_='organic__title')
+                blok_href = blok.find('a', class_='organic__greenurl')
+                blok_about_s = blok.find('span', class_='extended-text__short')
+                blok_about_f = blok.find('span', class_='extended-text__full')
+                if blok_titel != None:
+                    titel = blok_titel.text
+                    href = blok_href['href']
+                    if blok_about_f != None:
+                        about = blok_about_f.text
+                    elif blok_about_s != None:
+                        about = blok_about_s.text
+                    else:
+                        about = ""
+
+                    idanswer = str(uuid.uuid4())
+
+                    response = {
+                        '_id': idanswer,
+                        'chat_id': iduser,
+                        'question': idquestion,
+                        'response_text': {'titel': titel, 'href': href, 'about': about}, # тут пока храним целиком карточку из поисковика
+                    }
+
+                    response_id = create_response(mongo, response)
+
+                    result.append({
+                        "id": idanswer,
+                        "q": new_q,
+                        "answer":  {'titel': titel, 'href': href, 'about': about},
+                    })
+
+            driver.close()
+            driver.quit()
 
             return jsonify(result)
 
@@ -152,9 +240,9 @@ def grade():
 
             rating = {
                 '_id': str(uuid.uuid4()),
-                'rating': grd_answer,
                 'chat_id': iduser,
-                'rating_id': id_answer,
+                'answer_id': id_answer,
+                'rating': grd_answer,
                 'commentary_text': com_answer
             }
 
@@ -164,7 +252,7 @@ def grade():
         # входящие параметры json в катором массив свойств: id ответов, оценка, комментарий; token - ключ, id - компании
         # можно реализовать уточняющие вопросы
 
-        return "", 200
+        return "Рейтинг добавлен успешно", 200
 
     else:
         return jsonify(error)
@@ -176,14 +264,22 @@ def setfilter():
 
     if ver:
         data = request.get_json()
+        id = request.args.get("id", type=str)
 
         # тут устанавливаем список слов для фильтрации
         # входящие параметры: json в катором массив слов; token - ключ, id - компании
         # возвращаем idfilter
 
-        idfilter = ""
+        filter = {
+            '_id': str(uuid.uuid4()),
+            'company_id': id,
+            'censored_words': data,
+            'active': True,
+        }
 
-        return idfilter
+        idfilter = create_filter(mongo, filter)
+
+        return jsonify(idfilter)
 
     else:
         return jsonify(error)
@@ -198,14 +294,14 @@ def getfilter():
         # входящие параметры: idfilter; token - ключ, id - компании
         # возвращаем json в катором массив слов
 
-        result = []
-        result.append({
-            "idfilter": "id фильтра",
-            "list": "список слов",
-        })
+        idfilter =  request.args.get("idfilter", type=str)
 
-        return jsonify(error)
+        if idfilter != "":
+            filter = get_filter(mongo, idfilter)
 
+            return jsonify(filter)
+
+        return "Фильтр не найден (ИД фильтра не должн быть пустым)", 200
     else:
         return jsonify(error)
 
@@ -220,7 +316,13 @@ def delfilter():
         if idfilter != "":
             # тут архивируем фильтр
             # входящие параметры: idfilter; token - ключ, id - компании
-            return "", 200
+
+            filter = get_filter(mongo, idfilter)
+            filter['active'] = False
+
+            result = update_filter(mongo, idfilter, filter)
+
+            return jsonify(result), 200
 
         return "Фильтр не найден (ИД фильтра не должн быть пустым)", 200
 

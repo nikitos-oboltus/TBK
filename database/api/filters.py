@@ -1,5 +1,16 @@
-def get_filters(mongo, ):
+def get_filters(mongo):
     documents = mongo.db.filters.find()
+    output = []
+    for document in documents:
+        output.append({
+            '_id': str(document['_id']),
+            'company_id': document['company_id'],
+            'censored_words': document['censored_words'],
+        })
+    return output
+
+def get_filters_company(mongo, company_id, active=True):
+    documents = mongo.db.filters.find({'company_id': company_id, 'active': active})
     output = []
     for document in documents:
         output.append({

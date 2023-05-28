@@ -1,0 +1,6 @@
+flask
+flask_pymongo
+selenium
+webdriver_manager
+bs4
+lxml

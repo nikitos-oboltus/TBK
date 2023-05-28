@@ -1,4 +1,4 @@
-def get_companies(mongo, ):
+def get_companies(mongo):
     documents = mongo.db.companies.find()
     output = []
     for document in documents:
