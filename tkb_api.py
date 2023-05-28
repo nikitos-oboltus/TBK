@@ -122,14 +122,17 @@ def question():
         if iduser != "" and q != "":
 
             # тут обработка по фильтру
-            new_q = []
+            new_q = ""
             filters_company = get_filters_company(mongo, id)
-            for flt in filters_company:
-                censored_words = flt["censored_words"]
+            if len(filters_company) > 0:
                 q_words = q.split(' ')
-                for q_word in q_words:
-                    if q_word not in censored_words:
-                        new_q.append(q_word)
+                for flt in filters_company:
+                    censored_words = flt["censored_words"]
+                    for q_word in q_words:
+                        if q_word not in censored_words:
+                            new_q = new_q + q_word
+            else:
+                new_q = q
 
             # тут должен быть механизм поиска ответов
 
@@ -153,22 +156,41 @@ def question():
 
             result = []
 
+            b_count = 0
             for blok in bloks:
 
-                idanswer = str(uuid.uuid4())
+                if b_count > 5: break
+                b_count = b_count + 1
 
-                response = {
-                    '_id': idanswer,
-                    'chat_id': iduser,
-                    'response_text': blok, # тут пока храним целиком карточку изипоисковика
-                }
+                blok_titel = blok.find('span', class_='organic__title')
+                blok_href = blok.find('a', class_='organic__greenurl')
+                blok_about_s = blok.find('span', class_='extended-text__short')
+                blok_about_f = blok.find('span', class_='extended-text__full')
+                if blok_titel != None:
+                    titel = blok_titel.text
+                    href = blok_href['href']
+                    if blok_about_f != None:
+                        about = blok_about_f.text
+                    elif blok_about_s != None:
+                        about = blok_about_s.text
+                    else:
+                        about = ""
 
-                response_id = create_response(mongo, response)
+                    idanswer = str(uuid.uuid4())
 
-                result.append({
-                    "id": idanswer,
-                    "answer": blok,
-                })
+                    response = {
+                        '_id': idanswer,
+                        'chat_id': iduser,
+                        'response_text': {'titel': titel, 'href': href, 'about': about}, # тут пока храним целиком карточку из поисковика
+                    }
+
+                    response_id = create_response(mongo, response)
+
+                    result.append({
+                        "id": idanswer,
+                        "q": new_q,
+                        "answer":  {'titel': titel, 'href': href, 'about': about},
+                    })
 
             driver.close()
             driver.quit()
