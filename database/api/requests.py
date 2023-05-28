@@ -5,7 +5,7 @@ def get_requests(mongo, ):
         output.append({
             '_id': str(document['_id']),
             'chat_id': document['chat_id'],
-            'response_text': document['response_text'],
+            'requests_text': document['requests_text'],
         })
     return output
 

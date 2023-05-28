@@ -16,7 +16,8 @@ from database.api.companies import get_companies, get_company, create_company, u
 from database.api.filters import get_filters, get_filter, create_filter, update_filter, delete_filter, get_filters_company
 from database.api.ratings import get_ratings, get_rating, create_rating, update_rating, delete_rating
 from database.api.responses import get_responses, get_response, create_response, update_response, delete_response
-from database.api.users import get_users, get_user, create_user, update_user, delete_user
+from database.api.requests import get_requests, get_request, create_request, update_request, delete_request
+#from database.api.users import get_users, get_user, create_user, update_user, delete_user
 
 from database.routes.companies import companies_b
 from database.routes.filters import filters_b
@@ -134,6 +135,16 @@ def question():
             else:
                 new_q = q
 
+            idquestion = str(uuid.uuid4())
+
+            response = {
+                '_id': idquestion,
+                'chat_id': iduser,
+                'requests_text': new_q,
+            }
+
+            request_id = create_request(mongo, response)
+
             # тут должен быть механизм поиска ответов
 
             # Тут у нас работает ИИ если результат не удовлетворитерен то просто ищем подходящие ресурсы через поиск в интернете
@@ -181,6 +192,7 @@ def question():
                     response = {
                         '_id': idanswer,
                         'chat_id': iduser,
+                        'question': idquestion,
                         'response_text': {'titel': titel, 'href': href, 'about': about}, # тут пока храним целиком карточку из поисковика
                     }
 
