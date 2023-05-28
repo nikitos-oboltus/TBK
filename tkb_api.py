@@ -7,7 +7,7 @@ from flask_pymongo import PyMongo
 import uuid
 
 from database.api.companies import get_companies, get_company, create_company, update_company, delete_company
-from database.api.filters import get_filters, get_filter, create_filter, update_filter, delete_filter
+from database.api.filters import get_filters, get_filter, create_filter, update_filter, delete_filter, get_filters_company
 from database.api.ratings import get_ratings, get_rating, create_rating, update_rating, delete_rating
 from database.api.responses import get_responses, get_response, create_response, update_response, delete_response
 from database.api.users import get_users, get_user, create_user, update_user, delete_user
@@ -55,6 +55,7 @@ def verification(req):
 
     else:
         # тут обработка по фильтру
+
         return "", True
 
 @app.route("/gettoken", methods=["GET"])
@@ -70,10 +71,10 @@ def gettoken():
         # пока возвращаем статику для тестов
         # входящие параметры inn(ИНН) и name(Название) организации
 
-        token = uuid.uuid4()
+        token = str(uuid.uuid4())
 
         company = {
-            '_id': uuid.uuid4(),
+            '_id': str(uuid.uuid4()),
             'token': token,
             'tax_number': inn,
             'company_name': name
@@ -110,7 +111,17 @@ def question():
         # также будем сохранять вопросы пользователя в БД
         # входящие параметры: , id - компании, iduser - ид пользователя, token - ключ
 
-        if iduser != "":
+        if iduser != "" and q != "":
+
+            # тут обработка по фильтру
+            new_q = []
+            filters_company = get_filters_company(mongo, id)
+            for flt in filters_company:
+                censored_words = flt["censored_words"]
+                q_words = q.split(' ')
+                for q_word in q_words:
+                    if q_word not in censored_words:
+                        q_words.append(q_word)
 
             response = {
                 '_id': uuid.uuid4(),
@@ -152,9 +163,9 @@ def grade():
 
             rating = {
                 '_id': uuid.uuid4(),
-                'rating': grd_answer,
                 'chat_id': iduser,
-                'rating_id': id_answer,
+                'answer_id': id_answer,
+                'rating': grd_answer,
                 'commentary_text': com_answer
             }
 
@@ -164,7 +175,7 @@ def grade():
         # входящие параметры json в катором массив свойств: id ответов, оценка, комментарий; token - ключ, id - компании
         # можно реализовать уточняющие вопросы
 
-        return "", 200
+        return "Рейтинг добавлен успешно", 200
 
     else:
         return jsonify(error)
@@ -176,14 +187,22 @@ def setfilter():
 
     if ver:
         data = request.get_json()
+        id = request.args.get("id", type=str)
 
         # тут устанавливаем список слов для фильтрации
         # входящие параметры: json в катором массив слов; token - ключ, id - компании
         # возвращаем idfilter
 
-        idfilter = ""
+        filter = {
+            '_id': str(uuid.uuid4()),
+            'company_id': id,
+            'censored_words': data,
+            'active': True,
+        }
 
-        return idfilter
+        idfilter = create_filter(mongo, filter)
+
+        return jsonify(idfilter)
 
     else:
         return jsonify(error)
@@ -198,14 +217,14 @@ def getfilter():
         # входящие параметры: idfilter; token - ключ, id - компании
         # возвращаем json в катором массив слов
 
-        result = []
-        result.append({
-            "idfilter": "id фильтра",
-            "list": "список слов",
-        })
+        idfilter =  request.args.get("idfilter", type=str)
 
-        return jsonify(error)
+        if idfilter != "":
+            filter = get_filter(mongo, idfilter)
 
+            return jsonify(filter)
+
+        return "Фильтр не найден (ИД фильтра не должн быть пустым)", 200
     else:
         return jsonify(error)
 
@@ -220,7 +239,13 @@ def delfilter():
         if idfilter != "":
             # тут архивируем фильтр
             # входящие параметры: idfilter; token - ключ, id - компании
-            return "", 200
+
+            filter = get_filter(mongo, idfilter)
+            filter['active'] = False
+
+            result = update_filter(mongo, idfilter, filter)
+
+            return jsonify(result), 200
 
         return "Фильтр не найден (ИД фильтра не должн быть пустым)", 200
 
