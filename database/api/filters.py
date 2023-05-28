@@ -9,8 +9,8 @@ def get_filters(mongo):
         })
     return output
 
-def get_filters_company(mongo, company_id):
-    documents = mongo.db.filters.find({'company_id': company_id})
+def get_filters_company(mongo, company_id, active=True):
+    documents = mongo.db.filters.find({'company_id': company_id, 'active': active})
     output = []
     for document in documents:
         output.append({
