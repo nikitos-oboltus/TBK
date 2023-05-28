@@ -16,13 +16,13 @@ from database.api.companies import get_companies, get_company, create_company, u
 from database.api.filters import get_filters, get_filter, create_filter, update_filter, delete_filter
 from database.api.ratings import get_ratings, get_rating, create_rating, update_rating, delete_rating
 from database.api.responses import get_responses, get_response, create_response, update_response, delete_response
-from database.api.users import get_users, get_user, create_user, update_user, delete_user
+from database.api.requests import get_requests, get_request, create_request, update_request, delete_request
 
 from database.routes.companies import companies_b
 from database.routes.filters import filters_b
 from database.routes.ratings import ratings_b
 from database.routes.responses import responses_b
-from database.routes.users import users_b
+from database.routes.requests import requests_b
 
 app = flask.Flask(__name__)
 
