@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 import uuid
-from database.api.companies import get_companies, get_company, create_company, update_company, delete_company
+from ..api.companies import get_companies, get_company, create_company, update_company, delete_company
 
 # Create a blueprint object
 companies_b = Blueprint('companies', __name__)

@@ -73,7 +73,7 @@ def gettoken():
         token = uuid.uuid4()
 
         company = {
-            '_id': str(uuid.uuid4()),
+            '_id': uuid.uuid4(),
             'token': token,
             'tax_number': inn,
             'company_name': name
@@ -113,7 +113,7 @@ def question():
         if iduser != "":
 
             response = {
-                '_id': str(uuid.uuid4()),
+                '_id': uuid.uuid4(),
                 'chat_id': iduser,
                 'response_text': q,
             }
@@ -151,7 +151,7 @@ def grade():
             com_answer = grd["comment"]
 
             rating = {
-                '_id': str(uuid.uuid4()),
+                '_id': uuid.uuid4(),
                 'rating': grd_answer,
                 'chat_id': iduser,
                 'rating_id': id_answer,
@@ -232,5 +232,5 @@ def timeout(e):
     return jsonify("Запрос не удалось обработать в срок, timeout")
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1')
+    app.run(debug=True, host='127.0.0.1')
 

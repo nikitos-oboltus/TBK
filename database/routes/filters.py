@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, jsonify, request
 import uuid
-from database.api.filters import get_filters, get_filter, create_filter, update_filter, delete_filter
+from ..api.filters import get_filters, get_filter, create_filter, update_filter, delete_filter
 
 # Create a blueprint object
 filters_b = Blueprint('filters', __name__)
